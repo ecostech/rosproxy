@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package>
+  <name>rosproxy_server</name>
+  <version>0.1.1</version>
+  <description>The rosproxy_server package</description>
+  <author>Chad Attermann</author>
+  <maintainer email="chad@ecostechnologies.com">Chad Attermann</maintainer>
+  <license>BSD</license>
+  <url>https://github.com/ecostech/rosproxy</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rosproxy_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>topic_tools</build_depend>
+  <build_depend>tf</build_depend>
+  <run_depend>rosproxy_msgs</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>topic_tools</run_depend>
+  <run_depend>tf</run_depend>
+</package>

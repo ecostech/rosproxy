@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package>
+  <name>rosproxy_arduino</name>
+  <version>0.1.1</version>
+  <description>The rosproxy_arduino package</description>
+  <author>Chad Attermann</author>
+  <maintainer email="chad@ecostechnologies.com">Chad Attermann</maintainer>
+  <license>BSD</license>
+  <url>https://github.com/ecostech/rosproxy</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>rosproxy_msgs</run_depend>
+  <run_depend>rosproxy_server</run_depend>
+</package>
