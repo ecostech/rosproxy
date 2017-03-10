@@ -8,13 +8,19 @@ Currently implements proxy nodes for Odom messages (nav_msgs/Odometry.h) and Imu
 
 ## Usage
 
-Clone to src directory of catkin workspace, then 'catkin_make'.
+Clone to src directory of catkin workspace, then `catkin_make`.
 
 Copy rosproxy_arduino/sketchbook/libraries/ros_lib/rosproxy_msgs to the ros_lib directory of your Arduino libraries.
 
 Sample launch files in rosproxy_server/launch.
 
 Sample Arduino code in rosproxy_arduino/sketchbook.
+
+Custom messages in rosproxy_msgs are not yet built for Arduino by catkin.  If changed then rebuild headers manually:
+
+```
+rosrun rosserial_client make_library.py ~/sketchbook/libraries rosproxy_msgs
+```
 
 ## Authors
 
