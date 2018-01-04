@@ -52,9 +52,9 @@ ImuProxyNode::ImuProxyNode()
   ROS_INFO_STREAM("imu_topic: " << imu_topic);
 
   // CBA Initially zero out covariances
-  memset(imu_msg.orientation_covariance, 0, sizeof(imu_msg.orientation_covariance));
-  memset(imu_msg.angular_velocity_covariance, 0, sizeof(imu_msg.angular_velocity_covariance));
-  memset(imu_msg.linear_acceleration_covariance, 0, sizeof(imu_msg.linear_acceleration_covariance));
+  imu_msg.orientation_covariance.assign(0);
+  imu_msg.angular_velocity_covariance.assign(0);
+  imu_msg.linear_acceleration_covariance.assign(0);
 
 }
 

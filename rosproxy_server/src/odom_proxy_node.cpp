@@ -61,8 +61,8 @@ OdomProxyNode::OdomProxyNode()
   ROS_INFO_STREAM("odom_topic: " << odom_topic);
 
   // CBA Initially zero out covariances
-  memset(odom_msg.pose.covariance, 0, sizeof(odom_msg.pose.covariance));
-  memset(odom_msg.twist.covariance, 0, sizeof(odom_msg.twist.covariance));
+  odom_msg.pose.covariance.assign(0);
+  odom_msg.twist.covariance.assign(0);
 
 }
 
