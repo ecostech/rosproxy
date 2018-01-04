@@ -6,6 +6,10 @@
 #include <signal.h>
 #include <string>
 
+// CBA Define following to enable service for obtaining covariances
+// (not currently supported by rosserial on Arduino)
+//#define _IMU_COVAR
+
 void mySigintHandler(int sig)
 {
   ROS_INFO("Received SIGINT signal, shutting down...");
@@ -26,10 +30,14 @@ protected:
   ros::NodeHandle nh;
   ros::Publisher imu_pub;
   ros::Subscriber imu_sub;
-  ros::ServiceClient imu_client;
   sensor_msgs::Imu imu_msg;
 
+#ifdef _IMU_COVAR
+  ros::ServiceClient imu_client;
+#endif
+
   std::string imu_frame;
+  std::string imu_topic;
 
 };
 
@@ -40,60 +48,13 @@ ImuProxyNode::ImuProxyNode()
   ros::NodeHandle nhLocal("~");
   nhLocal.param<std::string>("imu_frame", imu_frame, "");
   ROS_INFO_STREAM("imu_frame: " << imu_frame);
+  nhLocal.param<std::string>("imu_topic", imu_topic, "imu/data");
+  ROS_INFO_STREAM("imu_topic: " << imu_topic);
 
-  /*
-  # Orientation covariance estimation:
-  # Observed orientation noise: 0.3 degrees in x, y, 0.6 degrees in z
-  # Magnetometer linearity: 0.1% of full scale (+/- 2 gauss) => 4 milligauss
-  # Earth's magnetic field strength is ~0.5 gauss, so magnetometer nonlinearity could
-  # cause ~0.8% yaw error (4mgauss/0.5 gauss = 0.008) => 2.8 degrees, or 0.050 radians
-  # i.e. variance in yaw: 0.0025
-  # Accelerometer non-linearity: 0.2% of 4G => 0.008G. This could cause
-  # static roll/pitch error of 0.8%, owing to gravity orientation sensing
-  # error => 2.8 degrees, or 0.05 radians. i.e. variance in roll/pitch: 0.0025
-  # so set all covariances the same.
-  */
-  imu_msg.orientation_covariance[0] = 0.0025;
-  imu_msg.orientation_covariance[1] = 0;
-  imu_msg.orientation_covariance[2] = 0;
-  imu_msg.orientation_covariance[3] = 0;
-  imu_msg.orientation_covariance[4] = 0.0025;
-  imu_msg.orientation_covariance[5] = 0;
-  imu_msg.orientation_covariance[6] = 0;
-  imu_msg.orientation_covariance[7] = 0;
-  imu_msg.orientation_covariance[8] = 0.0025;
-
-  /*
-  # Angular velocity covariance estimation:
-  # Observed gyro noise: 4 counts => 0.28 degrees/sec
-  # nonlinearity spec: 0.2% of full scale => 8 degrees/sec = 0.14 rad/sec
-  # Choosing the larger (0.14) as std dev, variance = 0.14^2 ~= 0.02
-  */
-  imu_msg.angular_velocity_covariance[0] = 0.02;
-  imu_msg.angular_velocity_covariance[1] = 0;
-  imu_msg.angular_velocity_covariance[2] = 0;
-  imu_msg.angular_velocity_covariance[3] = 0;
-  imu_msg.angular_velocity_covariance[4] = 0.02;
-  imu_msg.angular_velocity_covariance[5] = 0;
-  imu_msg.angular_velocity_covariance[6] = 0;
-  imu_msg.angular_velocity_covariance[7] = 0;
-  imu_msg.angular_velocity_covariance[8] = 0.02;
-
-  /*
-  # linear acceleration covariance estimation:
-  # observed acceleration noise: 5 counts => 20milli-G's ~= 0.2m/s^2
-  # nonliniarity spec: 0.5% of full scale => 0.2m/s^2
-  # Choosing 0.2 as std dev, variance = 0.2^2 = 0.04
-  */
-  imu_msg.linear_acceleration_covariance[0] = 0.04;
-  imu_msg.linear_acceleration_covariance[1] = 0;
-  imu_msg.linear_acceleration_covariance[2] = 0;
-  imu_msg.linear_acceleration_covariance[3] = 0;
-  imu_msg.linear_acceleration_covariance[4] = 0.04;
-  imu_msg.linear_acceleration_covariance[5] = 0;
-  imu_msg.linear_acceleration_covariance[6] = 0;
-  imu_msg.linear_acceleration_covariance[7] = 0;
-  imu_msg.linear_acceleration_covariance[8] = 0.04;
+  // CBA Initially zero out covariances
+  memset(imu_msg.orientation_covariance, 0, sizeof(imu_msg.orientation_covariance));
+  memset(imu_msg.angular_velocity_covariance, 0, sizeof(imu_msg.angular_velocity_covariance));
+  memset(imu_msg.linear_acceleration_covariance, 0, sizeof(imu_msg.linear_acceleration_covariance));
 
 }
 
@@ -128,26 +89,57 @@ void ImuProxyNode::imu_callback(const rosproxy_msgs::Imu::ConstPtr& imuMsg)
 
 int ImuProxyNode::run()
 {
-/*
+
+#ifdef _IMU_COVAR
   ROS_INFO("Requesting Imu Covariances");
   imu_client = nh.serviceClient<rosproxy_msgs::RequestImuCovariances>("rosproxy/imu_covar_srv");
   rosproxy_msgs::RequestImuCovariances imuCovarSrv;
   if (imu_client.call(imuCovarSrv))
   {
-    //imu_msg.orientation_covariance[0] = imuCovarSrv.response.orientation_covariance[0];
+    imu_msg.orientation_covariance[0] = imuCovarSrv.response.orientation_covariance[0];
+    imu_msg.orientation_covariance[1] = imuCovarSrv.response.orientation_covariance[1];
+    imu_msg.orientation_covariance[2] = imuCovarSrv.response.orientation_covariance[2];
+    imu_msg.orientation_covariance[3] = imuCovarSrv.response.orientation_covariance[3];
+    imu_msg.orientation_covariance[4] = imuCovarSrv.response.orientation_covariance[4];
+    imu_msg.orientation_covariance[5] = imuCovarSrv.response.orientation_covariance[5];
+    imu_msg.orientation_covariance[6] = imuCovarSrv.response.orientation_covariance[6];
+    imu_msg.orientation_covariance[7] = imuCovarSrv.response.orientation_covariance[7];
+    imu_msg.orientation_covariance[8] = imuCovarSrv.response.orientation_covariance[8];
+    imu_msg.linear_acceleration_covariance[0] = imuCovarSrv.response.linear_acceleration_covariance[0];
+    imu_msg.linear_acceleration_covariance[1] = imuCovarSrv.response.linear_acceleration_covariance[1];
+    imu_msg.linear_acceleration_covariance[2] = imuCovarSrv.response.linear_acceleration_covariance[2];
+    imu_msg.linear_acceleration_covariance[3] = imuCovarSrv.response.linear_acceleration_covariance[3];
+    imu_msg.linear_acceleration_covariance[4] = imuCovarSrv.response.linear_acceleration_covariance[4];
+    imu_msg.linear_acceleration_covariance[5] = imuCovarSrv.response.linear_acceleration_covariance[5];
+    imu_msg.linear_acceleration_covariance[6] = imuCovarSrv.response.linear_acceleration_covariance[6];
+    imu_msg.linear_acceleration_covariance[7] = imuCovarSrv.response.linear_acceleration_covariance[7];
+    imu_msg.linear_acceleration_covariance[8] = imuCovarSrv.response.linear_acceleration_covariance[8];
+    imu_msg.angular_velocity_covariance[0] = imuCovarSrv.response.angular_velocity_covariance[0];
+    imu_msg.angular_velocity_covariance[1] = imuCovarSrv.response.angular_velocity_covariance[1];
+    imu_msg.angular_velocity_covariance[2] = imuCovarSrv.response.angular_velocity_covariance[2];
+    imu_msg.angular_velocity_covariance[3] = imuCovarSrv.response.angular_velocity_covariance[3];
+    imu_msg.angular_velocity_covariance[4] = imuCovarSrv.response.angular_velocity_covariance[4];
+    imu_msg.angular_velocity_covariance[5] = imuCovarSrv.response.angular_velocity_covariance[5];
+    imu_msg.angular_velocity_covariance[6] = imuCovarSrv.response.angular_velocity_covariance[6];
+    imu_msg.angular_velocity_covariance[7] = imuCovarSrv.response.angular_velocity_covariance[7];
+    imu_msg.angular_velocity_covariance[8] = imuCovarSrv.response.angular_velocity_covariance[8];
   }
   else
   {
     ROS_WARN("Failed to retrieve Imu Covariances");
   }
-*/
-  ROS_INFO("Publishing to topic /imu/data");
-  imu_pub = nh.advertise<sensor_msgs::Imu>("imu/data", 1000);
-  ROS_INFO("Subscribing to topic /rosproxy/imu");
+#endif
+
+  ROS_INFO_STREAM("Publishing to topic " << imu_topic);
+  imu_pub = nh.advertise<sensor_msgs::Imu>(imu_topic, 1000);
+  ROS_INFO("Subscribing to topic rosproxy/imu");
   imu_sub = nh.subscribe("rosproxy/imu", 1000, &ImuProxyNode::imu_callback, this);
+
   ROS_INFO("Relaying between topics...");
   ros::spin();
+
   ROS_INFO("Exiting");
+
   return 0;
 }
 

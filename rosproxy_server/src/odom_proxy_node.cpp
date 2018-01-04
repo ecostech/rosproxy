@@ -7,6 +7,10 @@
 #include <signal.h>
 #include <string>
 
+// CBA Define following to enable service for obtaining covariances
+// (not currently supported by rosserial on Arduino)
+//#define _ODOM_COVAR
+
 void mySigintHandler(int sig)
 {
   ROS_INFO("Received SIGINT signal, shutting down...");
@@ -28,13 +32,17 @@ protected:
   tf::TransformBroadcaster odom_broadcaster;
   ros::Publisher odom_pub;
   ros::Subscriber odom_sub;
-  ros::ServiceClient odom_client;
   geometry_msgs::TransformStamped trans_msg;
   nav_msgs::Odometry odom_msg;
+
+#ifdef _ODOM_COVAR
+  ros::ServiceClient odom_client;
+#endif
 
   bool pub_odom_tf;
   std::string odom_frame;
   std::string base_frame;
+  std::string odom_topic;
 
 };
 
@@ -49,6 +57,12 @@ OdomProxyNode::OdomProxyNode()
   ROS_INFO_STREAM("odom_frame: " << odom_frame);
   nhLocal.param<std::string>("base_frame", base_frame, "");
   ROS_INFO_STREAM("base_frame: " << base_frame);
+  nhLocal.param<std::string>("odom_topic", odom_topic, "odom");
+  ROS_INFO_STREAM("odom_topic: " << odom_topic);
+
+  // CBA Initially zero out covariances
+  memset(odom_msg.pose.covariance, 0, sizeof(odom_msg.pose.covariance));
+  memset(odom_msg.twist.covariance, 0, sizeof(odom_msg.twist.covariance));
 
 }
 
@@ -114,27 +128,103 @@ void OdomProxyNode::odom_callback(const rosproxy_msgs::Odometry::ConstPtr& odomM
 
 int OdomProxyNode::run()
 {
-/*
+
+#ifdef _ODOM_COVAR
   ROS_INFO("Requesting Odometry Covariances");
   odom_client = nh.serviceClient<rosproxy_msgs::RequestOdometryCovariances>("rosproxy/odom_covar_srv");
   rosproxy_msgs::RequestOdometryCovariances odomCovarSrv;
   if (odom_client.call(odomCovarSrv))
   {
-    //odom_msg.orientation_covariance[0] = odomCovarSrv.response.orientation_covariance[0];
+    odom_msg.pose.covariance[0] = odomCovarSrv.response.pose_covariance[0];
+    odom_msg.pose.covariance[1] = odomCovarSrv.response.pose_covariance[1];
+    odom_msg.pose.covariance[2] = odomCovarSrv.response.pose_covariance[2];
+    odom_msg.pose.covariance[3] = odomCovarSrv.response.pose_covariance[3];
+    odom_msg.pose.covariance[4] = odomCovarSrv.response.pose_covariance[4];
+    odom_msg.pose.covariance[5] = odomCovarSrv.response.pose_covariance[5];
+    odom_msg.pose.covariance[6] = odomCovarSrv.response.pose_covariance[6];
+    odom_msg.pose.covariance[7] = odomCovarSrv.response.pose_covariance[7];
+    odom_msg.pose.covariance[8] = odomCovarSrv.response.pose_covariance[8];
+    odom_msg.pose.covariance[9] = odomCovarSrv.response.pose_covariance[9];
+    odom_msg.pose.covariance[10] = odomCovarSrv.response.pose_covariance[10];
+    odom_msg.pose.covariance[11] = odomCovarSrv.response.pose_covariance[11];
+    odom_msg.pose.covariance[12] = odomCovarSrv.response.pose_covariance[12];
+    odom_msg.pose.covariance[13] = odomCovarSrv.response.pose_covariance[13];
+    odom_msg.pose.covariance[14] = odomCovarSrv.response.pose_covariance[14];
+    odom_msg.pose.covariance[15] = odomCovarSrv.response.pose_covariance[15];
+    odom_msg.pose.covariance[16] = odomCovarSrv.response.pose_covariance[16];
+    odom_msg.pose.covariance[17] = odomCovarSrv.response.pose_covariance[17];
+    odom_msg.pose.covariance[18] = odomCovarSrv.response.pose_covariance[18];
+    odom_msg.pose.covariance[19] = odomCovarSrv.response.pose_covariance[19];
+    odom_msg.pose.covariance[20] = odomCovarSrv.response.pose_covariance[20];
+    odom_msg.pose.covariance[21] = odomCovarSrv.response.pose_covariance[21];
+    odom_msg.pose.covariance[22] = odomCovarSrv.response.pose_covariance[22];
+    odom_msg.pose.covariance[23] = odomCovarSrv.response.pose_covariance[23];
+    odom_msg.pose.covariance[24] = odomCovarSrv.response.pose_covariance[24];
+    odom_msg.pose.covariance[25] = odomCovarSrv.response.pose_covariance[25];
+    odom_msg.pose.covariance[26] = odomCovarSrv.response.pose_covariance[26];
+    odom_msg.pose.covariance[27] = odomCovarSrv.response.pose_covariance[27];
+    odom_msg.pose.covariance[28] = odomCovarSrv.response.pose_covariance[28];
+    odom_msg.pose.covariance[29] = odomCovarSrv.response.pose_covariance[29];
+    odom_msg.pose.covariance[30] = odomCovarSrv.response.pose_covariance[30];
+    odom_msg.pose.covariance[31] = odomCovarSrv.response.pose_covariance[31];
+    odom_msg.pose.covariance[32] = odomCovarSrv.response.pose_covariance[32];
+    odom_msg.pose.covariance[33] = odomCovarSrv.response.pose_covariance[33];
+    odom_msg.pose.covariance[34] = odomCovarSrv.response.pose_covariance[34];
+    odom_msg.pose.covariance[35] = odomCovarSrv.response.pose_covariance[35];
+    odom_msg.twist.covariance[0] = odomCovarSrv.response.twist_covariance[0];
+    odom_msg.twist.covariance[1] = odomCovarSrv.response.twist_covariance[1];
+    odom_msg.twist.covariance[2] = odomCovarSrv.response.twist_covariance[2];
+    odom_msg.twist.covariance[3] = odomCovarSrv.response.twist_covariance[3];
+    odom_msg.twist.covariance[4] = odomCovarSrv.response.twist_covariance[4];
+    odom_msg.twist.covariance[5] = odomCovarSrv.response.twist_covariance[5];
+    odom_msg.twist.covariance[6] = odomCovarSrv.response.twist_covariance[6];
+    odom_msg.twist.covariance[7] = odomCovarSrv.response.twist_covariance[7];
+    odom_msg.twist.covariance[8] = odomCovarSrv.response.twist_covariance[8];
+    odom_msg.twist.covariance[9] = odomCovarSrv.response.twist_covariance[9];
+    odom_msg.twist.covariance[10] = odomCovarSrv.response.twist_covariance[10];
+    odom_msg.twist.covariance[11] = odomCovarSrv.response.twist_covariance[11];
+    odom_msg.twist.covariance[12] = odomCovarSrv.response.twist_covariance[12];
+    odom_msg.twist.covariance[13] = odomCovarSrv.response.twist_covariance[13];
+    odom_msg.twist.covariance[14] = odomCovarSrv.response.twist_covariance[14];
+    odom_msg.twist.covariance[15] = odomCovarSrv.response.twist_covariance[15];
+    odom_msg.twist.covariance[16] = odomCovarSrv.response.twist_covariance[16];
+    odom_msg.twist.covariance[17] = odomCovarSrv.response.twist_covariance[17];
+    odom_msg.twist.covariance[18] = odomCovarSrv.response.twist_covariance[18];
+    odom_msg.twist.covariance[19] = odomCovarSrv.response.twist_covariance[19];
+    odom_msg.twist.covariance[20] = odomCovarSrv.response.twist_covariance[20];
+    odom_msg.twist.covariance[21] = odomCovarSrv.response.twist_covariance[21];
+    odom_msg.twist.covariance[22] = odomCovarSrv.response.twist_covariance[22];
+    odom_msg.twist.covariance[23] = odomCovarSrv.response.twist_covariance[23];
+    odom_msg.twist.covariance[24] = odomCovarSrv.response.twist_covariance[24];
+    odom_msg.twist.covariance[25] = odomCovarSrv.response.twist_covariance[25];
+    odom_msg.twist.covariance[26] = odomCovarSrv.response.twist_covariance[26];
+    odom_msg.twist.covariance[27] = odomCovarSrv.response.twist_covariance[27];
+    odom_msg.twist.covariance[28] = odomCovarSrv.response.twist_covariance[28];
+    odom_msg.twist.covariance[29] = odomCovarSrv.response.twist_covariance[29];
+    odom_msg.twist.covariance[30] = odomCovarSrv.response.twist_covariance[30];
+    odom_msg.twist.covariance[31] = odomCovarSrv.response.twist_covariance[31];
+    odom_msg.twist.covariance[32] = odomCovarSrv.response.twist_covariance[32];
+    odom_msg.twist.covariance[33] = odomCovarSrv.response.twist_covariance[33];
+    odom_msg.twist.covariance[34] = odomCovarSrv.response.twist_covariance[34];
+    odom_msg.twist.covariance[35] = odomCovarSrv.response.twist_covariance[35];
   }
   else
   {
     ROS_WARN("Failed to retrieve Odometry Covariances");
   }
-*/
+#endif
+
   ROS_INFO("Broadcasting odom tf");
-  ROS_INFO("Publishing to topic /odom");
-  odom_pub = nh.advertise<nav_msgs::Odometry>("odom", 1000);
-  ROS_INFO("Subscribing to topic /rosproxy/odom");
+  ROS_INFO_STREAM("Publishing to topic " << odom_topic);
+  odom_pub = nh.advertise<nav_msgs::Odometry>(odom_topic, 1000);
+  ROS_INFO("Subscribing to topic rosproxy/odom");
   odom_sub = nh.subscribe("rosproxy/odom", 1000, &OdomProxyNode::odom_callback, this);
+
   ROS_INFO("Relaying between topics...");
   ros::spin();
+
   ROS_INFO("Exiting");
+
   return 0;
 }
 
